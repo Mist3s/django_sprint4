@@ -126,3 +126,8 @@ CSRF_FAILURE_VIEW = 'core.views.csrf_failure'
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 
 EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
+
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Переадресация после логина. Убрать когда будет готова страница профиля
+LOGIN_REDIRECT_URL = 'blog:index'
