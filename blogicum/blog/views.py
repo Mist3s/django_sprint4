@@ -3,10 +3,10 @@ from django.shortcuts import render, get_object_or_404, get_list_or_404
 from django.utils import timezone
 from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 
-from .models import Post, User
-from .forms import PostForm
+from .models import Post, User, Comment
+from .forms import PostForm, CommentForm
 
 POST_LIMIT = 10
 
@@ -165,17 +165,41 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'blog/create.html'
 
     def dispatch(self, request, *args, **kwargs):
-        get_object_or_404(Post, pk=kwargs['post_id'], author=request.user)
+        get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
         return super().dispatch(request, *args, **kwargs)
 
 
 class PostDeleteView(LoginRequiredMixin, DeleteView):
     model = Post
     success_url = reverse_lazy('blog:index')
+    template_name = 'blog/create.html'
 
     def dispatch(self, request, *args, **kwargs):
         # Получаем объект по первичному ключу и автору или вызываем 404 ошибку.
-        get_object_or_404(Post, pk=kwargs['post_id'], author=request.user)
+        get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
         # Если объект был найден, то вызываем родительский метод,
         # чтобы работа CBV продолжилась.
         return super().dispatch(request, *args, **kwargs)
+
+
+class CommentCreateView(LoginRequiredMixin, CreateView):
+    post = None
+    model = Comment
+    form_class = CommentForm
+
+    # Переопределяем dispatch()
+    def dispatch(self, request, *args, **kwargs):
+        self.post = get_object_or_404(Post, pk=kwargs['pk'])
+        print(self.post)
+        return super().dispatch(request, *args, **kwargs)
+
+    # Переопределяем form_valid()
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        # form.instance.post = self.post
+
+        return super().form_valid(form)
+
+    # Переопределяем get_success_url()
+    def get_success_url(self):
+        return reverse('blog:post_detail', kwargs={'pk': self.post.pk})

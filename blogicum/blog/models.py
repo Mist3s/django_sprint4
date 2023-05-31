@@ -126,3 +126,17 @@ class Post(PublishedBaseModel):
     def get_absolute_url(self):
         # С помощью функции reverse() возвращаем URL объекта.
         return reverse('blog:profile', kwargs={'username': self.author})
+
+
+class Comment(models.Model):
+    text = models.TextField('Текст комментария')
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name='comment',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ('created_at',)
