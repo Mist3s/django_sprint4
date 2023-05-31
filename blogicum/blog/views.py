@@ -30,6 +30,27 @@ def get_query_set_post():
 #     context = {'post_list': post_list}
 #     return render(request, template, context)
 
+# def post_detail(request, pk):
+#     template = 'blog/detail.html'
+#     post = get_object_or_404(
+#         get_query_set_post(),
+#         pk=pk
+#     )
+#     context = {'post': post}
+#     return render(request, template, context)
+
+# def category_posts(request, category_slug):
+#     template = 'blog/category.html'
+#     post_list = get_list_or_404(
+#         get_query_set_post().filter(
+#             category__slug=category_slug,
+#         )
+#     )
+#     context = {
+#         'post_list': post_list,
+#         'category': post_list[0].category,
+#     }
+#     return render(request, template, context)
 
 class PostListView(ListView):
     model = Post
@@ -46,16 +67,6 @@ class PostListView(ListView):
             pub_date__lt=timezone.now(),
             category__is_published=True
         )
-
-
-# def post_detail(request, pk):
-#     template = 'blog/detail.html'
-#     post = get_object_or_404(
-#         get_query_set_post(),
-#         pk=pk
-#     )
-#     context = {'post': post}
-#     return render(request, template, context)
 
 
 class PostDetailView(DetailView):
@@ -82,19 +93,6 @@ class PostDetailView(DetailView):
         context['comments'] = self.object.comments.select_related('author')
         return context
 
-# def category_posts(request, category_slug):
-#     template = 'blog/category.html'
-#     post_list = get_list_or_404(
-#         get_query_set_post().filter(
-#             category__slug=category_slug,
-#         )
-#     )
-#     context = {
-#         'post_list': post_list,
-#         'category': post_list[0].category,
-#     }
-#     return render(request, template, context)
-
 
 class PostCategoryListView(ListView):
     model = Post
@@ -110,7 +108,7 @@ class PostCategoryListView(ListView):
             is_published=True,
             pub_date__lt=timezone.now(),
             category__is_published=True,
-            # category__slug=self.category_slug,
+            category__slug=self.kwargs['category_slug']
         )
 
         return queryset
@@ -157,7 +155,6 @@ class UserProfileListView(ListView):
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
-    model = Post
     form_class = PostForm
     template_name = 'blog/create.html'
 
@@ -195,19 +192,30 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
     post_id = None
     model = Comment
     form_class = CommentForm
+    ordering = '-created_at'
 
-    # Переопределяем dispatch()
     def dispatch(self, request, *args, **kwargs):
         self.post_id = get_object_or_404(Post, pk=kwargs['pk'])
         return super().dispatch(request, *args, **kwargs)
 
-    # Переопределяем form_valid()
     def form_valid(self, form):
-        print(form.instance)
         form.instance.author = self.request.user
         form.instance.post_id = self.post_id
         return super().form_valid(form)
 
-    # Переопределяем get_success_url()
     def get_success_url(self):
         return reverse('blog:post_detail', kwargs={'pk': self.post_id.pk})
+
+
+class CommentUpdateView(LoginRequiredMixin, UpdateView):
+    model = Comment
+    form_class = CommentForm
+    template_name = 'includes/comment.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        get_object_or_404(Comment, pk=kwargs['pk'], author=request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse('blog:post_detail', kwargs={'pk': self.kwargs['post_id']})
+
