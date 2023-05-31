@@ -63,7 +63,7 @@ class PostDetailView(DetailView):
     template_name = 'blog/detail.html'
 
     def get_queryset(self):
-        return Post.objects.select_related(
+        queryset = Post.objects.select_related(
             'category',
             'location',
             'author',
@@ -72,7 +72,15 @@ class PostDetailView(DetailView):
             pub_date__lt=timezone.now(),
             category__is_published=True
         )
+        return queryset
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Записываем в переменную form пустой объект формы.
+        context['form'] = CommentForm()
+        # Запрашиваем все поздравления для выбранного дня рождения.
+        context['comments'] = self.object.comments.select_related('author')
+        return context
 
 # def category_posts(request, category_slug):
 #     template = 'blog/category.html'
@@ -137,13 +145,14 @@ class UserProfileListView(ListView):
                 category__is_published=True
             )
 
-        return queryset.annotate(Count('author'))
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['profile'] = User.objects.get(
             username=self.kwargs['username']
         )
+        context['comment_count'] = 1
         return context
 
 
@@ -183,23 +192,22 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
 
 
 class CommentCreateView(LoginRequiredMixin, CreateView):
-    post = None
+    post_id = None
     model = Comment
     form_class = CommentForm
 
     # Переопределяем dispatch()
     def dispatch(self, request, *args, **kwargs):
-        self.post = get_object_or_404(Post, pk=kwargs['pk'])
-        print(self.post)
+        self.post_id = get_object_or_404(Post, pk=kwargs['pk'])
         return super().dispatch(request, *args, **kwargs)
 
     # Переопределяем form_valid()
     def form_valid(self, form):
+        print(form.instance)
         form.instance.author = self.request.user
-        # form.instance.post = self.post
-
+        form.instance.post_id = self.post_id
         return super().form_valid(form)
 
     # Переопределяем get_success_url()
     def get_success_url(self):
-        return reverse('blog:post_detail', kwargs={'pk': self.post.pk})
+        return reverse('blog:post_detail', kwargs={'pk': self.post_id.pk})
