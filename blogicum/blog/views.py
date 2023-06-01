@@ -1,5 +1,5 @@
 from django.db.models import Count
-from django.shortcuts import render, get_object_or_404, get_list_or_404
+from django.shortcuts import render, get_object_or_404, get_list_or_404, redirect
 from django.utils import timezone
 from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -24,49 +24,13 @@ def get_query_set_post():
     return query_set_post
 
 
-# def index(request):
-#     template = 'blog/index.html'
-#     post_list = get_query_set_post()[:POST_LIMIT]
-#     context = {'post_list': post_list}
-#     return render(request, template, context)
-
-# def post_detail(request, pk):
-#     template = 'blog/detail.html'
-#     post = get_object_or_404(
-#         get_query_set_post(),
-#         pk=pk
-#     )
-#     context = {'post': post}
-#     return render(request, template, context)
-
-# def category_posts(request, category_slug):
-#     template = 'blog/category.html'
-#     post_list = get_list_or_404(
-#         get_query_set_post().filter(
-#             category__slug=category_slug,
-#         )
-#     )
-#     context = {
-#         'post_list': post_list,
-#         'category': post_list[0].category,
-#     }
-#     return render(request, template, context)
-
 class PostListView(ListView):
     model = Post
     paginate_by = POST_LIMIT
     template_name = 'blog/index.html'
 
     def get_queryset(self):
-        return Post.objects.select_related(
-            'category',
-            'location',
-            'author',
-        ).filter(
-            is_published=True,
-            pub_date__lt=timezone.now(),
-            category__is_published=True
-        )
+        return get_query_set_post()
 
 
 class PostDetailView(DetailView):
@@ -87,11 +51,22 @@ class PostDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Записываем в переменную form пустой объект формы.
         context['form'] = CommentForm()
-        # Запрашиваем все поздравления для выбранного дня рождения.
         context['comments'] = self.object.comments.select_related('author')
         return context
+
+# def category_posts(request, category_slug):
+#     template = 'blog/category.html'
+#     post_list = get_list_or_404(
+#         get_query_set_post().filter(
+#             category__slug=category_slug,
+#         )
+#     )
+#     context = {
+#         'post_list': post_list,
+#         'category': post_list[0].category,
+#     }
+#     return render(request, template, context)
 
 
 class PostCategoryListView(ListView):
@@ -108,7 +83,7 @@ class PostCategoryListView(ListView):
             is_published=True,
             pub_date__lt=timezone.now(),
             category__is_published=True,
-            category__slug=self.kwargs['category_slug']
+            category__slug=self.kwargs['category_slug'],
         )
 
         return queryset
@@ -155,6 +130,7 @@ class UserProfileListView(ListView):
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
+    model = Post
     form_class = PostForm
     template_name = 'blog/create.html'
 
@@ -171,7 +147,9 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'blog/create.html'
 
     def dispatch(self, request, *args, **kwargs):
-        get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
+        instance = get_object_or_404(Post, pk=kwargs['pk'])
+        if instance.author != request.user:
+            return redirect('blog:post_detail', pk=kwargs['pk'])
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -189,31 +167,37 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
 
 
 class CommentCreateView(LoginRequiredMixin, CreateView):
-    post_id = None
+    post_odj = None
     model = Comment
     form_class = CommentForm
-    ordering = '-created_at'
 
+    # Переопределяем dispatch()
     def dispatch(self, request, *args, **kwargs):
-        self.post_id = get_object_or_404(Post, pk=kwargs['pk'])
+        self.post_odj = get_object_or_404(Post, pk=kwargs['pk'])
         return super().dispatch(request, *args, **kwargs)
 
+    # Переопределяем form_valid()
     def form_valid(self, form):
+        print(form.instance)
         form.instance.author = self.request.user
-        form.instance.post_id = self.post_id
+        form.instance.post = self.post_odj
         return super().form_valid(form)
 
+    # Переопределяем get_success_url()
     def get_success_url(self):
-        return reverse('blog:post_detail', kwargs={'pk': self.post_id.pk})
+        return reverse('blog:post_detail', kwargs={'pk': self.post_odj.pk})
 
 
 class CommentUpdateView(LoginRequiredMixin, UpdateView):
     model = Comment
     form_class = CommentForm
-    template_name = 'includes/comment.html'
+    template_name = 'blog/comment.html'
+    pk_url_kwarg = 'comment_id'
 
     def dispatch(self, request, *args, **kwargs):
-        get_object_or_404(Comment, pk=kwargs['pk'], author=request.user)
+        instance = get_object_or_404(Comment, pk=kwargs['comment_id'])
+        if instance.author != request.user:
+            return redirect('blog:post_detail', pk=kwargs['post_id'])
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):

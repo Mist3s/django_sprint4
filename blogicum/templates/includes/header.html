@@ -21,10 +21,8 @@
           {% if user.is_authenticated %}
             <div class="btn-group" role="group" aria-label="Basic outlined example">
               <button type="button" class="btn btn-outline-primary"><a class="text-decoration-none text-reset"
-{#{% url 'blog:create_post' %}#}
                   href="{% url 'blog:create_post' %}">Написать пост</a></button>
               <button type="button" class="btn btn-outline-primary"><a class="text-decoration-none text-reset"
-{#{% url 'blog:profile' user.username %}#}
                   href="{% url 'blog:profile' user.username %}">{{ user.username }}</a></button>
               <button type="button" class="btn btn-outline-primary"><a class="text-decoration-none text-reset"
                   href="{% url 'logout' %}">Выйти</a></button>
@@ -34,7 +32,6 @@
               <button type="button" class="btn btn-outline-primary"><a class="text-decoration-none text-reset"
                   href="{% url 'login' %}">Войти</a></button>
               <button type="button" class="btn btn-outline-primary"><a class="text-decoration-none text-reset"
-{#{% url 'registration' %}#}
                   href="{% url 'registration' %}">Регистрация</a></button>
             </div>
           {% endif %}

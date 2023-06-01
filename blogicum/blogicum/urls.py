@@ -5,8 +5,8 @@ from django.urls import path, include, reverse_lazy
 from django.conf import settings
 from django.conf.urls.static import static
 
-handler404 = 'core.views.page_not_found'
-handler500 = 'core.views.page_server_error'
+handler404 = 'pages.views.page_not_found'
+handler500 = 'pages.views.page_server_error'
 
 urlpatterns = [
     path('', include('blog.urls', namespace='blog')),

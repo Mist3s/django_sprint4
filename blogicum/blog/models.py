@@ -130,7 +130,7 @@ class Post(PublishedBaseModel):
 
 class Comment(models.Model):
     text = models.TextField('Текст комментария')
-    post_id = models.ForeignKey(
+    post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
         related_name='comments',
