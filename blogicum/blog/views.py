@@ -1,3 +1,5 @@
+from django.contrib.auth.forms import UserCreationForm
+from django.db.models import Count
 from django.shortcuts import render, get_object_or_404, get_list_or_404, redirect
 from django.utils import timezone
 from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView
@@ -5,7 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
 
 from .models import Post, User, Comment
-from .forms import PostForm, CommentForm
+from .forms import PostForm, CommentForm, UserUpdateForm
 
 POST_LIMIT = 10
 
@@ -29,7 +31,8 @@ class PostListView(ListView):
     template_name = 'blog/index.html'
 
     def get_queryset(self):
-        return get_query_set_post()
+        queryset = get_query_set_post().order_by('-pub_date')
+        return queryset.annotate(comment_count=Count('comments'))
 
 
 class PostDetailView(DetailView):
@@ -75,7 +78,7 @@ class PostCategoryListView(ListView):
         return queryset
 
 
-class UserProfileListView(ListView):
+class ProfileListView(ListView):
     model = Post
     template_name = 'blog/profile.html'
     ordering = 'pub_date'
@@ -90,29 +93,40 @@ class UserProfileListView(ListView):
 
     def get_queryset(self):
         profile = self.kwargs['username']
-        queryset = Post.objects.select_related(
-            'category',
-            'location',
-            'author',
-        ).filter(
+        queryset = Post.objects.filter(
             author__username=profile
-        )
-        if not self.request.user.username == profile:
+        ).order_by('-pub_date')
+        if self.request.user.username != self.kwargs['username']:
             queryset = queryset.filter(
                 is_published=True,
                 pub_date__lt=timezone.now(),
                 category__is_published=True
             )
 
-        return queryset
+        return queryset.annotate(comment_count=Count('comments'))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['profile'] = User.objects.get(
             username=self.kwargs['username']
         )
-        context['comment_count'] = 1
         return context
+
+
+class ProfileUpdateView(LoginRequiredMixin, UpdateView):
+    model = User
+    success_url = reverse_lazy('blog:index')
+    template_name = 'blog/user.html'
+    form_class = UserUpdateForm
+
+    def dispatch(self, request, *args, **kwargs):
+        instance = get_object_or_404(User, username=kwargs['username'])
+        if instance.username != request.user.username:
+            return redirect('blog:profile', username=kwargs['username'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse('blog:profile', kwargs={'username': self.kwargs['username']})
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
@@ -157,7 +171,6 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        print(form.instance)
         form.instance.author = self.request.user
         form.instance.post = self.post_odj
         return super().form_valid(form)
