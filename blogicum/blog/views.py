@@ -1,4 +1,3 @@
-from django.db.models import Count
 from django.shortcuts import render, get_object_or_404, get_list_or_404, redirect
 from django.utils import timezone
 from django.views.generic import ListView, DetailView, CreateView, DeleteView, UpdateView
@@ -54,19 +53,6 @@ class PostDetailView(DetailView):
         context['form'] = CommentForm()
         context['comments'] = self.object.comments.select_related('author')
         return context
-
-# def category_posts(request, category_slug):
-#     template = 'blog/category.html'
-#     post_list = get_list_or_404(
-#         get_query_set_post().filter(
-#             category__slug=category_slug,
-#         )
-#     )
-#     context = {
-#         'post_list': post_list,
-#         'category': post_list[0].category,
-#     }
-#     return render(request, template, context)
 
 
 class PostCategoryListView(ListView):
@@ -135,9 +121,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     template_name = 'blog/create.html'
 
     def form_valid(self, form):
-        # Присвоить полю author объект пользователя из запроса.
         form.instance.author = self.request.user
-        # Продолжить валидацию, описанную в форме.
         return super().form_valid(form)
 
 
@@ -159,10 +143,7 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'blog/create.html'
 
     def dispatch(self, request, *args, **kwargs):
-        # Получаем объект по первичному ключу и автору или вызываем 404 ошибку.
         get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
-        # Если объект был найден, то вызываем родительский метод,
-        # чтобы работа CBV продолжилась.
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -171,19 +152,16 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
     model = Comment
     form_class = CommentForm
 
-    # Переопределяем dispatch()
     def dispatch(self, request, *args, **kwargs):
         self.post_odj = get_object_or_404(Post, pk=kwargs['pk'])
         return super().dispatch(request, *args, **kwargs)
 
-    # Переопределяем form_valid()
     def form_valid(self, form):
         print(form.instance)
         form.instance.author = self.request.user
         form.instance.post = self.post_odj
         return super().form_valid(form)
 
-    # Переопределяем get_success_url()
     def get_success_url(self):
         return reverse('blog:post_detail', kwargs={'pk': self.post_odj.pk})
 
@@ -191,6 +169,21 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
 class CommentUpdateView(LoginRequiredMixin, UpdateView):
     model = Comment
     form_class = CommentForm
+    template_name = 'blog/comment.html'
+    pk_url_kwarg = 'comment_id'
+
+    def dispatch(self, request, *args, **kwargs):
+        instance = get_object_or_404(Comment, pk=kwargs['comment_id'])
+        if instance.author != request.user:
+            return redirect('blog:post_detail', pk=kwargs['post_id'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse('blog:post_detail', kwargs={'pk': self.kwargs['post_id']})
+
+
+class CommentDeleteView(LoginRequiredMixin, DeleteView):
+    model = Comment
     template_name = 'blog/comment.html'
     pk_url_kwarg = 'comment_id'
 
