@@ -124,7 +124,6 @@ class Post(PublishedBaseModel):
         return self.title
 
     def get_absolute_url(self):
-        # С помощью функции reverse() возвращаем URL объекта.
         return reverse('blog:profile', kwargs={'username': self.author})
 
 
