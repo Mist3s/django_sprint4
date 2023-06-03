@@ -139,8 +139,8 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'blog/create.html'
 
     def dispatch(self, request, *args, **kwargs):
-        instance = get_object_or_404(Post, pk=kwargs['pk'])
-        if instance.author != request.user:
+        post = get_object_or_404(Post, pk=kwargs['pk'])
+        if post.author != request.user:
             return redirect('blog:post_detail', pk=kwargs['pk'])
         return super().dispatch(request, *args, **kwargs)
 
@@ -152,8 +152,8 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
     form_class = PostForm
 
     def dispatch(self, request, *args, **kwargs):
-        instance = get_object_or_404(Post, pk=kwargs['pk'])
-        if instance.author != request.user:
+        post = get_object_or_404(Post, pk=kwargs['pk'])
+        if post.author != request.user:
             return redirect('blog:post_detail', pk=kwargs['pk'])
         return super().dispatch(request, *args, **kwargs)
 
@@ -164,21 +164,21 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
 
 
 class CommentCreateView(LoginRequiredMixin, CreateView):
-    post_odj = None
+    post_obj = None
     model = Comment
     form_class = CommentForm
 
     def dispatch(self, request, *args, **kwargs):
-        self.post_odj = get_object_or_404(Post, pk=kwargs['pk'])
+        self.post_obj = get_object_or_404(Post, pk=kwargs['pk'])
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         form.instance.author = self.request.user
-        form.instance.post = self.post_odj
+        form.instance.post = self.post_obj
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse('blog:post_detail', kwargs={'pk': self.post_odj.pk})
+        return reverse('blog:post_detail', kwargs={'pk': self.post_obj.pk})
 
 
 class CommentUpdateView(LoginRequiredMixin, UpdateView):
@@ -188,8 +188,8 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
     pk_url_kwarg = 'comment_id'
 
     def dispatch(self, request, *args, **kwargs):
-        instance = get_object_or_404(Comment, pk=kwargs['comment_id'])
-        if instance.author != request.user:
+        comment = get_object_or_404(Comment, pk=kwargs['comment_id'])
+        if comment.author != request.user:
             return redirect('blog:post_detail', pk=kwargs['post_id'])
         return super().dispatch(request, *args, **kwargs)
 
@@ -205,8 +205,8 @@ class CommentDeleteView(LoginRequiredMixin, DeleteView):
     pk_url_kwarg = 'comment_id'
 
     def dispatch(self, request, *args, **kwargs):
-        instance = get_object_or_404(Comment, pk=kwargs['comment_id'])
-        if instance.author != request.user:
+        comment = get_object_or_404(Comment, pk=kwargs['comment_id'])
+        if comment.author != request.user:
             return redirect('blog:post_detail', pk=kwargs['post_id'])
         return super().dispatch(request, *args, **kwargs)
 

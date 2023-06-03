@@ -98,6 +98,7 @@ class Post(PublishedBaseModel):
         null=True,
         related_name='location',
         verbose_name='Местоположение',
+        blank=True
     )
     category = models.ForeignKey(
         Category,
@@ -128,14 +129,26 @@ class Post(PublishedBaseModel):
 
 
 class Comment(models.Model):
-    text = models.TextField('Текст комментария')
+    text = models.TextField(
+        verbose_name='Текст комментария'
+    )
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
         related_name='comments',
+        verbose_name='Пост'
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата и время публикации'
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Автор'
+    )
 
     class Meta:
         ordering = ('created_at',)
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
