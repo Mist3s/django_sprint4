@@ -1,11 +1,12 @@
 from django.db.models import Count, Prefetch
-from django.shortcuts import get_object_or_404, redirect, get_list_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from django.views.generic import (
     ListView, DetailView, CreateView, DeleteView, UpdateView
 )
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
+from django.db.models import Q
 
 from .models import Post, User, Comment, Category
 from .forms import PostForm, CommentForm, UserUpdateForm
@@ -13,14 +14,11 @@ from .forms import PostForm, CommentForm, UserUpdateForm
 POST_LIMIT = 10
 
 
-class VerificationAuthorBaseClass(LoginRequiredMixin):
+class VerificationAuthorBaseClass:
     model = Post
 
     def dispatch(self, request, *args, **kwargs):
-        model_pk = 'pk'
-        if self.model == Post:
-            model_pk = 'post_id'
-        instance = get_object_or_404(self.model, pk=kwargs[model_pk])
+        instance = get_object_or_404(self.model, pk=kwargs[self.pk_url_kwarg])
         if instance.author != request.user:
             return redirect('blog:post_detail', pk=kwargs['post_id'])
         return super().dispatch(request, *args, **kwargs)
@@ -69,27 +67,25 @@ class PostCategoryListView(ListView):
     template_name = 'blog/category.html'
 
     def get_queryset(self):
-        self.category = get_list_or_404(
+        self.category = get_object_or_404(
             Category.objects.filter(
                 slug=self.kwargs['category_slug'],
                 is_published=True
             ).prefetch_related(
                 Prefetch(
                     'post_set',
-                    get_query_set_post().filter(
-                        category__slug=self.kwargs['category_slug']
-                    ).annotate(
+                    get_query_set_post().annotate(
                         comment_count=Count('comments')
                     ).order_by('-pub_date'),
                     'post_list'
                 )
             )
         )
-        return self.category[0].post_list
+        return self.category.post_list
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['category'] = self.category[0]
+        context['category'] = self.category
         return context
 
 
@@ -106,10 +102,10 @@ class ProfileListView(ListView):
         )
         if self.request.user.username != self.kwargs['username']:
             queryset = Post.objects.filter(
-                author__username=self.kwargs['username'],
-                is_published=True,
-                pub_date__lt=timezone.now(),
-                category__is_published=True
+                Q(author__username=self.kwargs['username']) &
+                Q(is_published=True) &
+                Q(pub_date__lt=timezone.now()) &
+                Q(category__is_published=True)
             )
         self.profile = get_object_or_404(
             User.objects.filter(
