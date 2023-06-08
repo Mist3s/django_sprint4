@@ -70,16 +70,16 @@ class PostCategoryListView(ListView):
 
     def get_queryset(self):
         self.category = get_list_or_404(Category.objects.filter(
-            slug=self.kwargs['category_slug'],
-            is_published=True
-        ).prefetch_related(
+                slug=self.kwargs['category_slug'],
+                is_published=True
+            ).prefetch_related(
                 Prefetch(
                     'post_set',
                     get_query_set_post().filter(
                         category__slug=self.kwargs['category_slug'],
                     ).annotate(
-                        comment_count=Count('comments')
-                    ).order_by('-pub_date'),
+                            comment_count=Count('comments')
+                        ).order_by('-pub_date'),
                     'post_list'
                 )
             )

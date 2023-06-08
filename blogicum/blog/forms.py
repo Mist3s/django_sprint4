@@ -10,10 +10,10 @@ class PostForm(forms.ModelForm):
         help_text='Если установить дату и время в будущем '
                   '— можно делать отложенные публикации.',
         widget=forms.DateTimeInput(
-                attrs={
-                    'type': 'datetime-local',
-                    'class': 'form-control'
-                }
+            attrs={
+                'type': 'datetime-local',
+                'class': 'form-control'
+            }
         ),
         initial=timezone.now
     )
