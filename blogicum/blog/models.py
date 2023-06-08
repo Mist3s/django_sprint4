@@ -104,7 +104,6 @@ class Post(PublishedBaseModel):
         Category,
         on_delete=models.SET_NULL,
         null=True,
-        related_name='category',
         verbose_name='Категория',
         blank=False
     )
