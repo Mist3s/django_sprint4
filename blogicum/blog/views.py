@@ -102,10 +102,10 @@ class ProfileListView(ListView):
         )
         if self.request.user.username != self.kwargs['username']:
             queryset = Post.objects.filter(
-                Q(author__username=self.kwargs['username']) &
-                Q(is_published=True) &
-                Q(pub_date__lt=timezone.now()) &
-                Q(category__is_published=True)
+                Q(author__username=self.kwargs['username'])
+                & Q(is_published=True)
+                & Q(pub_date__lt=timezone.now())
+                & Q(category__is_published=True)
             )
         self.profile = get_object_or_404(
             User.objects.filter(
