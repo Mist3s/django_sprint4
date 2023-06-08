@@ -13,6 +13,19 @@ from .forms import PostForm, CommentForm, UserUpdateForm
 POST_LIMIT = 10
 
 
+class VerificationAuthorBaseClass(LoginRequiredMixin):
+    model = Post
+
+    def dispatch(self, request, *args, **kwargs):
+        model_pk = 'pk'
+        if self.model == Post:
+            model_pk = 'post_id'
+        instance = get_object_or_404(self.model, pk=kwargs[model_pk])
+        if instance.author != request.user:
+            return redirect('blog:post_detail', pk=kwargs['post_id'])
+        return super().dispatch(request, *args, **kwargs)
+
+
 def get_query_set_post():
     query_set_post = Post.objects.select_related(
         'category',
@@ -142,29 +155,19 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class PostUpdateView(LoginRequiredMixin, UpdateView):
+class PostUpdateView(VerificationAuthorBaseClass, UpdateView):
     model = Post
     form_class = PostForm
     template_name = 'blog/create.html'
-
-    def dispatch(self, request, *args, **kwargs):
-        post = get_object_or_404(Post, pk=kwargs['pk'])
-        if post.author != request.user:
-            return redirect('blog:post_detail', pk=kwargs['pk'])
-        return super().dispatch(request, *args, **kwargs)
+    pk_url_kwarg = 'post_id'
 
 
-class PostDeleteView(LoginRequiredMixin, DeleteView):
+class PostDeleteView(VerificationAuthorBaseClass, DeleteView):
     model = Post
     success_url = reverse_lazy('blog:index')
     template_name = 'blog/create.html'
     form_class = PostForm
-
-    def dispatch(self, request, *args, **kwargs):
-        post = get_object_or_404(Post, pk=kwargs['pk'])
-        if post.author != request.user:
-            return redirect('blog:post_detail', pk=kwargs['pk'])
-        return super().dispatch(request, *args, **kwargs)
+    pk_url_kwarg = 'post_id'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -190,17 +193,10 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
         return reverse('blog:post_detail', kwargs={'pk': self.post_obj.pk})
 
 
-class CommentUpdateView(LoginRequiredMixin, UpdateView):
+class CommentUpdateView(VerificationAuthorBaseClass, UpdateView):
     model = Comment
     form_class = CommentForm
     template_name = 'blog/comment.html'
-    pk_url_kwarg = 'comment_id'
-
-    def dispatch(self, request, *args, **kwargs):
-        comment = get_object_or_404(Comment, pk=kwargs['comment_id'])
-        if comment.author != request.user:
-            return redirect('blog:post_detail', pk=kwargs['post_id'])
-        return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
         return reverse(
@@ -208,16 +204,9 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
         )
 
 
-class CommentDeleteView(LoginRequiredMixin, DeleteView):
+class CommentDeleteView(VerificationAuthorBaseClass, DeleteView):
     model = Comment
     template_name = 'blog/comment.html'
-    pk_url_kwarg = 'comment_id'
-
-    def dispatch(self, request, *args, **kwargs):
-        comment = get_object_or_404(Comment, pk=kwargs['comment_id'])
-        if comment.author != request.user:
-            return redirect('blog:post_detail', pk=kwargs['post_id'])
-        return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
         return reverse(
