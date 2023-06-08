@@ -1,5 +1,5 @@
-from django.db.models import Count
-from django.shortcuts import get_object_or_404, redirect
+from django.db.models import Count, Prefetch
+from django.shortcuts import get_object_or_404, redirect, get_list_or_404
 from django.utils import timezone
 from django.views.generic import (
     ListView, DetailView, CreateView, DeleteView, UpdateView
@@ -56,22 +56,25 @@ class PostCategoryListView(ListView):
     template_name = 'blog/category.html'
 
     def get_queryset(self):
-        self.category = get_object_or_404(
-            Category,
+        self.category = get_list_or_404(Category.objects.filter(
             slug=self.kwargs['category_slug'],
             is_published=True
-        )
-        return get_query_set_post().filter(
-            category__slug=self.category.slug
-        ).annotate(
-            comment_count=Count('comments')
-        ).order_by(
-            '-pub_date'
-        )
+        ).prefetch_related(
+                Prefetch(
+                    'post_set',
+                    get_query_set_post().filter(
+                        category__slug=self.kwargs['category_slug'],
+                    ).annotate(
+                        comment_count=Count('comments')
+                    ).order_by('-pub_date'),
+                    'post_list'
+                )
+            ))
+        return self.category[0].post_list
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['category'] = self.category
+        context['category'] = self.category[0]
         return context
 
 
