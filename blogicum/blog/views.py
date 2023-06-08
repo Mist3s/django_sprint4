@@ -69,7 +69,8 @@ class PostCategoryListView(ListView):
                     ).order_by('-pub_date'),
                     'post_list'
                 )
-            ))
+            )
+        )
         return self.category[0].post_list
 
     def get_context_data(self, **kwargs):
@@ -85,32 +86,37 @@ class ProfileListView(ListView):
     paginate_by = POST_LIMIT
     profile = None
 
-    def dispatch(self, request, *args, **kwargs):
-        self.profile = get_object_or_404(
-            User, username=kwargs['username']
-        )
-        return super().dispatch(request, *args, **kwargs)
-
     def get_queryset(self):
         queryset = Post.objects.filter(
             author__username=self.kwargs['username']
         )
         if self.request.user.username != self.kwargs['username']:
-            queryset = queryset.filter(
+            queryset = Post.objects.filter(
+                author__username=self.kwargs['username'],
                 is_published=True,
                 pub_date__lt=timezone.now(),
                 category__is_published=True
             )
+        self.profile = get_object_or_404(
+            User.objects.filter(
+                username=self.kwargs['username']
+            ).prefetch_related(
+                Prefetch(
+                    'post_set',
+                    queryset.annotate(
+                        comment_count=Count('comments')
+                    ).order_by('-pub_date'),
+                    'post_list'
+                )
+            )
+        )
 
-        return queryset.annotate(
-            comment_count=Count('comments')
-        ).order_by('-pub_date')
+        return self.profile.post_list
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['profile'] = User.objects.get(
-            username=self.kwargs['username']
-        )
+        context['profile'] = self.profile
+        print(self.profile.post_list)
         return context
 
 

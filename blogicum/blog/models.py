@@ -88,7 +88,6 @@ class Post(PublishedBaseModel):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='author',
         verbose_name='Автор публикации',
         blank=False
     )
