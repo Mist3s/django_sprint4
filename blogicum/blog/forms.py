@@ -9,17 +9,18 @@ class PostForm(forms.ModelForm):
         label='Дата и время публикации',
         help_text='Если установить дату и время в будущем '
                   '— можно делать отложенные публикации.',
+        widget=forms.DateTimeInput(
+                attrs={
+                    'type': 'datetime-local',
+                    'class': 'form-control'
+                }
+        ),
         initial=timezone.now
     )
 
     class Meta:
         model = Post
         exclude = ('author', 'is_published')
-        widgets = {
-            'pub_date': forms.DateTimeInput(
-                attrs={'type': 'datetime-local', 'class': 'form-control'}
-            )
-        }
 
 
 class CommentForm(forms.ModelForm):
