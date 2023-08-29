@@ -5,6 +5,18 @@ from . import views
 app_name = 'blog'
 
 urlpatterns = [
+path(
+        'api/v1/test/<int:pk>/',
+        views.APIPostDetail.as_view()
+    ),
+    path(
+        'api/v1/posts/',
+        views.PostList.as_view()
+    ),
+    path(
+        'api/v1/posts/<int:pk>/',
+        views.PostDetail.as_view()
+    ),
     path(
         '',
         views.PostListView.as_view(),
