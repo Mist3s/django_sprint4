@@ -20,7 +20,7 @@ from .serializers import PostSerializer
 POST_LIMIT = 10
 
 
-class APIPost(APIView):
+class APIPostLowLevel(APIView):
     def get(self, request):
         posts = Post.objects.all()
         serializer = PostSerializer(posts, many=True)
@@ -34,7 +34,7 @@ class APIPost(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class APIPostDetail(APIView):
+class APIPostDetailLowLevel(APIView):
     def get_object(self, pk):
         try:
             return Post.objects.get(pk=pk)
@@ -75,13 +75,13 @@ def get_post(request, pk):
         return JsonResponse(serializer.data, safe=False)
 
 
-class PostList(generics.ListCreateAPIView):
+class APIPostList(generics.ListCreateAPIView):
     """'GET', 'POST'"""
     queryset = Post.objects.all()
     serializer_class = PostSerializer
 
 
-class PostDetail(generics.RetrieveUpdateDestroyAPIView):
+class APIPostDetail(generics.RetrieveUpdateDestroyAPIView):
     """'GET', 'PUT', 'PATCH', 'DELETE'"""
     queryset = Post.objects.all()
     serializer_class = PostSerializer
