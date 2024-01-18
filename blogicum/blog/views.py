@@ -8,112 +8,11 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy, reverse
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponse, Http404
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status, generics
-from rest_framework.views import APIView
 
 from .models import Post, User, Comment, Category
 from .forms import PostForm, CommentForm, UserUpdateForm
-from .serializers import PostSerializer
 
 POST_LIMIT = 10
-
-
-class APIPostLowLevel(APIView):
-    def get(self, request):
-        posts = Post.objects.all()
-        serializer = PostSerializer(posts, many=True)
-        return Response(serializer.data)
-
-    def post(self, request):
-        serializer = PostSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class APIPostDetailLowLevel(APIView):
-    def get_object(self, pk):
-        try:
-            return Post.objects.get(pk=pk)
-        except Post.DoesNotExist:
-            raise Http404
-
-    def get(self, *args, **kwargs):
-        post = self.get_object(self.kwargs['pk'])
-        serializer = PostSerializer(post)
-        return Response(serializer.data)
-
-    def put(self, request, *args, **kwargs):
-        post = self.get_object(self.kwargs['pk'])
-        serializer = PostSerializer(post, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def patch(self, request, *args, **kwargs):
-        post = self.get_object(self.kwargs['pk'])
-        serializer = PostSerializer(post, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, *args, **kwargs):
-        post = self.get_object(self.kwargs['pk'])
-        post.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-def get_post(request, pk):
-    if request.method == 'GET':
-        post = Post.objects.get(pk=pk)
-        serializer = PostSerializer(post)
-        return JsonResponse(serializer.data, safe=False)
-
-
-class APIPostList(generics.ListCreateAPIView):
-    """'GET', 'POST'"""
-    queryset = Post.objects.all()
-    serializer_class = PostSerializer
-
-
-class APIPostDetail(generics.RetrieveUpdateDestroyAPIView):
-    """'GET', 'PUT', 'PATCH', 'DELETE'"""
-    queryset = Post.objects.all()
-    serializer_class = PostSerializer
-
-
-@api_view(['GET', 'POST'])
-def api_posts(request):
-    if request.method == 'POST':
-        serializer = PostSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    posts = Post.objects.all()
-    serializer = PostSerializer(posts, many=True)
-    return Response(serializer.data)
-
-
-@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
-def api_posts_detail(request, pk):
-    post = Post.objects.get(pk=pk)
-    if request.method == 'PUT' or request.method == 'PATCH':
-        serializer = PostSerializer(post, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    elif request.method == 'DELETE':
-        post.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-    serializer = PostSerializer(post)
-    return Response(serializer.data)
 
 
 class VerificationAuthorBaseClass:
