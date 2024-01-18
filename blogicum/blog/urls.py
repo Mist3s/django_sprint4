@@ -6,22 +6,6 @@ app_name = 'blog'
 
 urlpatterns = [
     path(
-        'api/v1/lowlevel/posts/<int:pk>/',
-        views.APIPostDetailLowLevel.as_view()
-    ),
-    path(
-        'api/v1/lowlevel/posts/',
-        views.APIPostLowLevel.as_view()
-    ),
-    path(
-        'api/v1/highlevel/posts/',
-        views.APIPostList.as_view()
-    ),
-    path(
-        'api/v1/highlevel/posts/<int:pk>/',
-        views.APIPostDetail.as_view()
-    ),
-    path(
         '',
         views.PostListView.as_view(),
         name='index'
